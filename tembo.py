@@ -1,6 +1,5 @@
 import psycopg2
 import pandas as pd
-import psycopg2
 from psycopg2.extensions import AsIs
 import os
 
@@ -13,7 +12,7 @@ def replace_nan_nat_with_none(value):
 def main():
 
      # Load the Excel file into a DataFrame
-    excel_file_path = 'tests/test_data.xlsx'  # Replace with the path to your Excel file
+    excel_file_path = 'tests/test_data_2.xlsx'  # Replace with the path to your Excel file
     df = pd.read_excel(excel_file_path)
 
     df = df.applymap(lambda x: None if pd.isna(x) else x)
@@ -25,7 +24,7 @@ def main():
 
      # Clean up column names: replace spaces and periods with underscores
     df.columns = [col.replace(' ', '_',).replace('.', '_').replace('%','percent').replace('(','').replace(')','').replace(',','')
-    .replace('-','_').replace('/','_by_') for col in df.columns]
+    .replace('-','_').replace('/','_by_').replace('#','number').replace('&','and') for col in df.columns]
 
     # Connection string
     conn_str = os.getenv('DATABASE_URL')
@@ -57,7 +56,7 @@ def main():
         insert_statement = f"INSERT INTO {table_name} ({column_names}) VALUES ({placeholders})"
         for _, row in df.iterrows():
             cur.execute(insert_statement, tuple(row))
-
+ 
         conn.commit()
         print("Data successfully inserted into the database")
 
