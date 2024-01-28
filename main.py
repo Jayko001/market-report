@@ -29,28 +29,23 @@ def scrape_dynamic_content(url):
     return text_content
 
 
-def get_company_info(company_name):
+def get_company_info(company_name, competitor):
 
-    about_intro = "Summarize the about section for the company based on the following content:"
+    about_intro = "Summarize the about section for "+ competitor + " based on the following content and find why its a competitor for : " + company_name
     customers_intro = "Summarize the target customer(s) for the company based on the following content:"
     pricing_intro = "Summarize the pricing information for the company based on the following content:"
 
     # About
-    about_search_results = google_search(f"{company_name} About", ggl_api_key, ggl_cse_id, num=3)
+    about_search_results = google_search(f"{competitor} About", ggl_api_key, ggl_cse_id, num=3)
     about_content = ' '.join([scrape_dynamic_content(result['link']) for result in about_search_results])
-    #about_summary = interpret_with_gpt4(about_content)
     about_summary = interpret_with_gpt4(client, about_content, about_intro)
 
     # Customers
-    # customer_search_results = google_search(f"{company_name} customers", ggl_api_key, ggl_cse_id, num=3)
-    # customer_content = ' '.join([scrape_dynamic_content(result['link']) for result in customer_search_results])
-    #customers_summary = interpret_with_gpt4(customer_content)
     customers_summary = interpret_with_gpt4(client, about_content, customers_intro)
 
     # Pricing
-    pricing_search_results = google_search(f"{company_name} pricing", ggl_api_key, ggl_cse_id, num=1)
+    pricing_search_results = google_search(f"{competitor} pricing", ggl_api_key, ggl_cse_id, num=1)
     pricing_content = ' '.join([scrape_dynamic_content(result['link']) for result in pricing_search_results])
-    #pricing_summary = interpret_with_gpt4(pricing_content)
     pricing_summary = interpret_with_gpt4(client, pricing_content, pricing_intro)
 
     return {
@@ -79,5 +74,6 @@ def interpret_with_gpt4 (client, text, prompt_intro):
 
 
 company_name = "Perceive Now"
-company_info = get_company_info(company_name)
+competitor = "ReportLinker"
+company_info = get_company_info(company_name, competitor)
 print(company_info)
