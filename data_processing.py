@@ -100,6 +100,38 @@ def map_cities(cities):
 
     world_map.save('map.html')
 
+def get_exit_stats(df):
+    # Convert 'valuation_by_revenue' to numeric values, replacing 'NaT' with NaN
+    exit_deal_types = [
+        'IPO', 'Buyout/LBO', 'Reverse Merger', 'Secondary Buyout',
+        'Merger/Acquisition', 'Secondary Transaction - Private', 'Share Repurchase'
+        , 'Secondary Transaction - Open Market', 'Public Investment 2nd Offering'
+    ]
+    df = df[df['deal_type'].isin(exit_deal_types)]
+    df = df[~df['deal_type'].isin(['NaT'])]
+    df['deal_type'] = df['deal_type'].replace({
+        'Secondary Transaction - Private': 'Secondary Offering',
+        'Secondary Transaction - Open Market': 'Secondary Offering',
+        'Public Investment 2nd Offering': 'Secondary Offering'
+    })
+
+    df['post_valuation'] = pd.to_numeric(df['post_valuation'], errors='coerce')
+
+    # Group by 'Deal Type 2' and calculate the median time difference
+    median_valuation = df.groupby('deal_type')['post_valuation'].median()
+
+    return median_valuation
+
+def get_equity_stats(df):
+    # Convert 'valuation_by_revenue' to numeric values, replacing 'NaT' with NaN
+    df['percent_acquired'] = pd.to_numeric(df['percent_acquired'], errors='coerce')
+
+    # Group by 'Deal Type 2' and calculate the median time difference
+    median_equity_1 = df.groupby('deal_type')['percent_acquired'].median()
+    median_equity_2 = df.groupby('deal_type_2')['percent_acquired'].median()
+
+    return median_equity_1, median_equity_2
+
 def main():
     table_name = 'deals'
     source_file = 'test_1'
@@ -118,7 +150,9 @@ def main():
         # valuation = get_valuation(df[['deal_type', 'deal_type_2', 'post_valuation']])
         # runway = get_runway(df[['company_id', 'deal_no_', 'deal_type_2', 'deal_date']])
         # world_map = map_cities(df['company_city'].unique().tolist())
-        print("map saved")
+        # exit_stats = get_exit_stats(df[['deal_type', 'post_valuation']])
+        # equity_stats = get_equity_stats(df[['deal_type', 'deal_type_2', 'percent_acquired']])
+        print(equity_stats)
 
     except Exception as e:
         print(f"An error occurred: {e}")
