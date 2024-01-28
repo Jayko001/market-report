@@ -1,8 +1,11 @@
 import os
 import pandas as pd
+import folium
+import matplotlib.pyplot as plt
 from sqlalchemy import create_engine
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
+from geopy.exc import GeocoderTimedOut
 
 def get_multiples(df):
     # Convert 'valuation_by_revenue' to numeric values, replacing 'NaT' with NaN
@@ -73,10 +76,6 @@ def get_runway(df):
 
     return median_runway
 
-import folium
-from geopy.geocoders import Nominatim
-from geopy.exc import GeocoderTimedOut
-
 # Geocoding function
 def geocode_city(city_name):
     try:
@@ -132,6 +131,34 @@ def get_equity_stats(df):
 
     return median_equity_1, median_equity_2
 
+# Does not work as well as intended
+# Could use a lot of work
+# Ignoring this for now
+def get_growth_chart(df):
+    # Assuming 'deal_date' is in a recognizable date format
+    df['deal_date'] = pd.to_datetime(df['deal_date'])
+    df = df.sort_values(by=['company_id', 'deal_date'])
+    df = df.dropna(subset=['deal_size'])
+    df['deal_size'] = pd.to_numeric(df['deal_size'], errors='coerce')
+
+    # Normalize the deal date by subtracting each company's first deal date
+    df['Normalized Deal Date'] = df.groupby('company_id')['deal_date'].transform(lambda x: (x - x.min()))
+
+    # Plot setup
+    plt.figure(figsize=(12, 6))
+    plt.xlabel('Years Since First Deal')
+    plt.ylabel('Deal Size')
+    plt.title('Normalized Startup Funding Trajectory')
+
+    # Group by company and plot each company's normalized trajectory
+    for company_name, group in df.groupby('companies'):
+        # Convert normalized deal date to years for plotting
+        years_since_first_deal = group['Normalized Deal Date'].dt.days / 365.25
+        plt.plot(years_since_first_deal, group['deal_size'], marker='o', label=company_name)
+
+    plt.legend()
+    plt.show()
+
 def main():
     table_name = 'deals'
     source_file = 'test_1'
@@ -152,7 +179,8 @@ def main():
         # world_map = map_cities(df['company_city'].unique().tolist())
         # exit_stats = get_exit_stats(df[['deal_type', 'post_valuation']])
         # equity_stats = get_equity_stats(df[['deal_type', 'deal_type_2', 'percent_acquired']])
-        print(equity_stats)
+        # growth_chart = get_growth_chart(df[['company_id', 'companies', 'deal_no_', 'deal_type_2', 'deal_date', 'deal_size', 'revenue']])
+        # print(equity_stats)
 
     except Exception as e:
         print(f"An error occurred: {e}")
