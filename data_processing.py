@@ -159,7 +159,13 @@ def get_growth_chart(df):
     plt.legend()
     plt.show()
 
+def extract_company_names(df):
+    company_names = df['companies'].unique().tolist()
+    return company_names
+
+
 def main():
+    global company_names
     table_name = 'deals'
     source_file = 'test_1'
     db_url = os.getenv('DATABASE_URL')
@@ -181,6 +187,9 @@ def main():
         # equity_stats = get_equity_stats(df[['deal_type', 'deal_type_2', 'percent_acquired']])
         # growth_chart = get_growth_chart(df[['company_id', 'companies', 'deal_no_', 'deal_type_2', 'deal_date', 'deal_size', 'revenue']])
         # print(equity_stats)
+
+        company_names = extract_company_names(df)
+        print(company_names)
 
     except Exception as e:
         print(f"An error occurred: {e}")

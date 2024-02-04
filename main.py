@@ -6,7 +6,10 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from openai import OpenAI
-
+from data_processing import extract_company_names
+import pandas as pd
+from sqlalchemy import create_engine
+import os
 
 client = OpenAI(api_key= OPENAI_API_KEY)
 
@@ -29,30 +32,35 @@ def scrape_dynamic_content(url):
     return text_content
 
 
-def get_company_info(company_name, competitor):
+def get_company_info(company_name, competitors):
+    company_info = {}
 
-    about_intro = "Summarize the about section for "+ competitor + " based on the following content and find why its a competitor for : " + company_name
-    customers_intro = "Summarize the target customer(s) for the company based on the following content:"
-    pricing_intro = "Summarize the pricing information for the company based on the following content:"
+    for competitor in competitors:
+        about_intro = f"Summarize the about section for {competitor} based on the following content and find why it's a competitor for {company_name}."
+        customers_intro = "Summarize the target customer(s) for the company based on the following content:"
+        pricing_intro = "Summarize the pricing information for the company based on the following content:"
 
-    # About
-    about_search_results = google_search(f"{competitor} About", ggl_api_key, ggl_cse_id, num=3)
-    about_content = ' '.join([scrape_dynamic_content(result['link']) for result in about_search_results])
-    about_summary = interpret_with_gpt4(client, about_content, about_intro)
+        # About
+        about_search_results = google_search(f"{competitor} About", ggl_api_key, ggl_cse_id, num=3)
+        about_content = ' '.join([scrape_dynamic_content(result['link']) for result in about_search_results])
+        about_summary = interpret_with_gpt4(client, about_content, about_intro)
 
-    # Customers
-    customers_summary = interpret_with_gpt4(client, about_content, customers_intro)
+        # Customers
+        customers_summary = interpret_with_gpt4(client, about_content, customers_intro)
 
-    # Pricing
-    pricing_search_results = google_search(f"{competitor} pricing", ggl_api_key, ggl_cse_id, num=1)
-    pricing_content = ' '.join([scrape_dynamic_content(result['link']) for result in pricing_search_results])
-    pricing_summary = interpret_with_gpt4(client, pricing_content, pricing_intro)
+        # Pricing
+        pricing_search_results = google_search(f"{competitor} pricing", ggl_api_key, ggl_cse_id, num=1)
+        pricing_content = ' '.join([scrape_dynamic_content(result['link']) for result in pricing_search_results])
+        pricing_summary = interpret_with_gpt4(client, pricing_content, pricing_intro)
 
-    return {
+    # Store the results in the dictionary
+    company_info[competitor] = {
         'about': about_summary,
         'customers': customers_summary,
         'pricing': pricing_summary
     }
+
+    return company_info
 
 def interpret_with_gpt4 (client, text, prompt_intro):
     full_prompt = f"{prompt_intro}\n\n{text}"
@@ -73,7 +81,27 @@ def interpret_with_gpt4 (client, text, prompt_intro):
         return ""
 
 
-company_name = "Perceive Now"
-competitor = "ReportLinker"
-company_info = get_company_info(company_name, competitor)
-print(company_info)
+
+def main():
+    global company_names
+    table_name = 'deals'
+    source_file = 'test_1'
+    db_url = os.getenv('DATABASE_URL')
+    if not db_url:
+        raise ValueError("Database connection string not found in environment variables")
+
+    try:
+        engine = create_engine(db_url)
+        query = f"SELECT * FROM {table_name} where source_file='{source_file}'"
+        df = pd.read_sql_query(query, engine)
+
+        company_name = "Perceive Now"
+        # competitor_names = extract_company_names(df)
+        competitor_names = ['Clarivate (NYS: CLVT)', 'Gartner (NYS: IT)', 'PatSnap']
+        print(get_company_info(company_name, competitor_names))
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    main()
