@@ -1,3 +1,5 @@
 venv/
 credentials.py
 __pycache__/
+map.html
+results.xlsx
