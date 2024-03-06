@@ -177,6 +177,10 @@ def get_dataframe():
         query = f"SELECT * FROM {table_name} where source_file='{source_file}'"
         df = pd.read_sql_query(query, engine)
         return df
+
+        # company_names = extract_company_names(df)
+        # growth_chart = get_growth_chart(df[['company_id', 'companies', 'deal_no_', 'deal_type_2', 'deal_date', 'deal_size', 'revenue']])
+
     except Exception as e:
         print(f"An error occurred: {e}")
         return pd.DataFrame()  # Return an empty DataFrame in case of an error
@@ -184,18 +188,22 @@ def get_dataframe():
 
 def main():
     df = get_dataframe()
-
     multiples = get_multiples(df[['deal_type', 'deal_type_2', 'valuation_by_revenue']])
     revenue = get_revenue(df[['deal_type', 'deal_type_2', 'revenue']])
     deal_size = get_deal_size(df[['deal_type', 'deal_type_2', 'deal_size']])
     valuation = get_valuation(df[['deal_type', 'deal_type_2', 'post_valuation']])
     runway = get_runway(df[['company_id', 'deal_no_', 'deal_type_2', 'deal_date']])
-    world_map = map_cities(df['company_city'].unique().tolist())
     exit_stats = get_exit_stats(df[['deal_type', 'post_valuation']])
     equity_stats = get_equity_stats(df[['deal_type', 'deal_type_2', 'percent_acquired']])
-    growth_chart = get_growth_chart(df[['company_id', 'companies', 'deal_no_', 'deal_type_2', 'deal_date', 'deal_size', 'revenue']])
-    # print(equity_stats)
 
+    result_1 = pd.concat([multiples[0], revenue[0], deal_size[0], valuation[0], exit_stats, equity_stats[0]], axis=1)
+    result_2 = pd.concat([multiples[1], revenue[1], deal_size[1], valuation[1], runway, equity_stats[1]], axis=1)
+    
+    with pd.ExcelWriter('results.xlsx') as writer:
+        result_1.to_excel(writer, sheet_name='Sheet1', index=True)
+        result_2.to_excel(writer, sheet_name='Sheet2', index=True)
+    
+    world_map = map_cities(df['company_city'].unique().tolist())
     # company_names = extract_company_names(df)
     # print(company_names)
 
