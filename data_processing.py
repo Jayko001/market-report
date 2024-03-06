@@ -163,8 +163,6 @@ def extract_company_names(df):
     company_names = df['companies'].unique().tolist()
     return company_names
 
-
-
 def get_dataframe():
     table_name = 'deals'
     source_file = 'test_1'
@@ -187,6 +185,7 @@ def get_dataframe():
     
 
 def main():
+
     df = get_dataframe()
     multiples = get_multiples(df[['deal_type', 'deal_type_2', 'valuation_by_revenue']])
     revenue = get_revenue(df[['deal_type', 'deal_type_2', 'revenue']])
@@ -203,9 +202,11 @@ def main():
         result_1.to_excel(writer, sheet_name='Sheet1', index=True)
         result_2.to_excel(writer, sheet_name='Sheet2', index=True)
     
-    world_map = map_cities(df['company_city'].unique().tolist())
+    # world_map = map_cities(df['company_city'].unique().tolist())
+
     # company_names = extract_company_names(df)
-    # print(company_names)
+    # growth_chart = get_growth_chart(df[['company_id', 'companies', 'deal_no_', 'deal_type_2', 'deal_date', 'deal_size', 'revenue']])
+
 
 if __name__ == "__main__":
     main()
