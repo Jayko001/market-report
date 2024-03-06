@@ -6,7 +6,10 @@ from sqlalchemy import create_engine
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 from geopy.exc import GeocoderTimedOut
+from openai import OpenAI
+from credentials import OPENAI_API_KEY, DATABASE_URL
 
+pd.options.mode.chained_assignment = None  # default='warn'
 def get_multiples(df):
     # Convert 'valuation_by_revenue' to numeric values, replacing 'NaT' with NaN
     df['valuation_by_revenue'] = pd.to_numeric(df['valuation_by_revenue'], errors='coerce')
@@ -166,12 +169,11 @@ def extract_company_names(df):
 def get_dataframe():
     table_name = 'deals'
     source_file = 'test_1'
-    db_url = os.getenv('DATABASE_URL')
-    if not db_url:
+    if not DATABASE_URL:
         raise ValueError("Database connection string not found in environment variables")
 
     try:
-        engine = create_engine(db_url)
+        engine = create_engine(DATABASE_URL)
         query = f"SELECT * FROM {table_name} where source_file='{source_file}'"
         df = pd.read_sql_query(query, engine)
         return df
@@ -184,29 +186,63 @@ def get_dataframe():
         return pd.DataFrame()  # Return an empty DataFrame in case of an error
     
 
+def interpret_results(results):
+    # Convert the results DataFrame to a string
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    results_str = results.to_string()
+    prompt = """
+    Summarize the results for average valuation, revenue, deal size, valuation by revenue, 
+    runway and equity percentage for series A stage companies as given in the data"""
+
+    # Use the OpenAI API to generate an interpretation
+    response = client.chat.completions.create(
+          model="gpt-4",
+          messages=[
+              {
+                  "role": "user",
+                  "content": results_str
+              }
+          ]
+      )
+    print(response.choices[0].message.content.strip())
+    return response.choices[0].message.content.strip()
+
 def main():
 
     df = get_dataframe()
+    print("Calculating results... \n")
     multiples = get_multiples(df[['deal_type', 'deal_type_2', 'valuation_by_revenue']])
+    print("Multiples done")
     revenue = get_revenue(df[['deal_type', 'deal_type_2', 'revenue']])
+    print("Revenue done")
     deal_size = get_deal_size(df[['deal_type', 'deal_type_2', 'deal_size']])
+    print("Deal size done")
     valuation = get_valuation(df[['deal_type', 'deal_type_2', 'post_valuation']])
+    print("Valuation done")
     runway = get_runway(df[['company_id', 'deal_no_', 'deal_type_2', 'deal_date']])
+    print("Runway done")
     exit_stats = get_exit_stats(df[['deal_type', 'post_valuation']])
+    print("Exit stats done")
     equity_stats = get_equity_stats(df[['deal_type', 'deal_type_2', 'percent_acquired']])
+    print("Equity stats done")
 
     result_1 = pd.concat([multiples[0], revenue[0], deal_size[0], valuation[0], exit_stats, equity_stats[0]], axis=1)
     result_2 = pd.concat([multiples[1], revenue[1], deal_size[1], valuation[1], runway, equity_stats[1]], axis=1)
     
+    print("\nSaving results to Excel...")
     with pd.ExcelWriter('results.xlsx') as writer:
-        result_1.to_excel(writer, sheet_name='Sheet1', index=True)
-        result_2.to_excel(writer, sheet_name='Sheet2', index=True)
-    
-    # world_map = map_cities(df['company_city'].unique().tolist())
+        result_2.to_excel(writer, sheet_name='Fundraising', index=True)
+        result_1.to_excel(writer, sheet_name='Exit', index=True)
+    print("Results saved to Excel \n")
 
+    # Call the function with your results
+    # interpret_results(result_1)
+    print("Interpreting results...")
+    interpret_results(result_2)
+            
+    # world_map = map_cities(df['company_city'].unique().tolist())
     # company_names = extract_company_names(df)
     # growth_chart = get_growth_chart(df[['company_id', 'companies', 'deal_no_', 'deal_type_2', 'deal_date', 'deal_size', 'revenue']])
-
 
 if __name__ == "__main__":
     main()
