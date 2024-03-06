@@ -164,8 +164,8 @@ def extract_company_names(df):
     return company_names
 
 
-def main():
-    global company_names
+
+def get_dataframe():
     table_name = 'deals'
     source_file = 'test_1'
     db_url = os.getenv('DATABASE_URL')
@@ -176,23 +176,28 @@ def main():
         engine = create_engine(db_url)
         query = f"SELECT * FROM {table_name} where source_file='{source_file}'"
         df = pd.read_sql_query(query, engine)
-
-        # multiples = get_multiples(df[['deal_type', 'deal_type_2', 'valuation_by_revenue']])
-        # revenue = get_revenue(df[['deal_type', 'deal_type_2', 'revenue']])
-        # deal_size = get_deal_size(df[['deal_type', 'deal_type_2', 'deal_size']])
-        # valuation = get_valuation(df[['deal_type', 'deal_type_2', 'post_valuation']])
-        # runway = get_runway(df[['company_id', 'deal_no_', 'deal_type_2', 'deal_date']])
-        # world_map = map_cities(df['company_city'].unique().tolist())
-        # exit_stats = get_exit_stats(df[['deal_type', 'post_valuation']])
-        # equity_stats = get_equity_stats(df[['deal_type', 'deal_type_2', 'percent_acquired']])
-        # growth_chart = get_growth_chart(df[['company_id', 'companies', 'deal_no_', 'deal_type_2', 'deal_date', 'deal_size', 'revenue']])
-        # print(equity_stats)
-
-        company_names = extract_company_names(df)
-        print(company_names)
-
+        return df
     except Exception as e:
         print(f"An error occurred: {e}")
+        return pd.DataFrame()  # Return an empty DataFrame in case of an error
+    
+
+def main():
+    df = get_dataframe()
+
+    multiples = get_multiples(df[['deal_type', 'deal_type_2', 'valuation_by_revenue']])
+    revenue = get_revenue(df[['deal_type', 'deal_type_2', 'revenue']])
+    deal_size = get_deal_size(df[['deal_type', 'deal_type_2', 'deal_size']])
+    valuation = get_valuation(df[['deal_type', 'deal_type_2', 'post_valuation']])
+    runway = get_runway(df[['company_id', 'deal_no_', 'deal_type_2', 'deal_date']])
+    world_map = map_cities(df['company_city'].unique().tolist())
+    exit_stats = get_exit_stats(df[['deal_type', 'post_valuation']])
+    equity_stats = get_equity_stats(df[['deal_type', 'deal_type_2', 'percent_acquired']])
+    growth_chart = get_growth_chart(df[['company_id', 'companies', 'deal_no_', 'deal_type_2', 'deal_date', 'deal_size', 'revenue']])
+    # print(equity_stats)
+
+    # company_names = extract_company_names(df)
+    # print(company_names)
 
 if __name__ == "__main__":
     main()
